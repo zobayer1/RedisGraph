@@ -2,6 +2,13 @@
 
 Redis Graph Connection Manager (module name: **redisgraph**) is a Python module designed to efficiently manage and query domain-to-member **edge** graphs using Redis as the backend.
 
+[![Python](https://img.shields.io/badge/python-3.8%2B-blueviolet?logo=python&logoColor=green)](https://www.python.org)
+[![codecov](https://codecov.io/github/zobayer1/RedisGraph/graph/badge.svg?token=oTgbo2idT1)](https://codecov.io/github/zobayer1/RedisGraph)
+[![Tests](https://github.com/zobayer1/RedisGraph/actions/workflows/python-package.yml/badge.svg?branch=main)](https://github.com/zobayer1/RedisGraph/actions/workflows/python-package.yml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-blue?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-ff69b4.svg)](https://github.com/zobayer1/RedisGraph/blob/main/LICENSE)
+
 ## Dependencies
 
 - Python 3.8 or above
