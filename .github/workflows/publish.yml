@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build-and-publish:
@@ -30,8 +29,5 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        # Trusted Publishing (OIDC) is recommended for public repos.
-        # If you prefer an API token instead, add it as a GitHub secret
-        # named PYPI_API_TOKEN and uncomment the next line.
-        # with:
-        #   password: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
