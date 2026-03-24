@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "graphconnectionmanager"
-version = "0.1.5"
+version = "0.1.6"
 description = "Generic Redis-based graph connection manager"
 authors = ["Zobayer Hasan <zobayer1@gmail.com>"]
 readme = "README.md"
