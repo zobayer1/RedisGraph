@@ -7,10 +7,14 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    # If your PyPI trusted publisher is configured with an Environment name
+    # (e.g. "release"), set it here to match:
+    environment: release
 
     steps:
       - uses: actions/checkout@v6
@@ -30,5 +34,4 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-          attestations: false
+          attestations: true
