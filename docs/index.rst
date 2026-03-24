@@ -35,12 +35,11 @@ Features
 Installation
 ------------
 
-The package is published as ``redisgraph``. You can install it using a wheel file or by copying the
-``redisgraph`` package into your project.
+The package is published on PyPI as ``graphconnectionmanager``. Import it in Python as ``redisgraph``.
 
 .. code-block:: bash
 
-   pip install redisgraph-0.1.5-py3-none-any.whl
+   pip install graphconnectionmanager-0.1.5-py3-none-any.whl
 
 Quickstart
 ----------
