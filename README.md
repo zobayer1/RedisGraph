@@ -109,15 +109,31 @@ Note: as part of the rename, the egg-info directory will move from the old proje
 
 You can install the Redis Graph Connection Manager in one of the following ways:
 
-### 1. Using a Wheel File
+### 1. Install from PyPI (recommended)
 
-- Download the latest `.whl` file.
-- Install with pip:
-  ```bash
-  pip install graphconnectionmanager-0.1.8-py3-none-any.whl
-  ```
+The distribution name on PyPI is `graphconnectionmanager`, but you import it in Python as `redisgraph`.
 
-### 2. Manual Installation
+```bash
+python -m pip install --upgrade pip
+python -m pip install graphconnectionmanager
+```
+
+### 2. Install a wheel from a GitHub Release
+
+If you prefer not to install from PyPI, you can download the wheel (`.whl`) from the GitHub Releases page and install it locally.
+
+1. Download the appropriate wheel file, for example:
+
+   - `graphconnectionmanager-<version>-py3-none-any.whl`
+
+2. Install it with pip:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install ./graphconnectionmanager-<version>-py3-none-any.whl
+```
+
+### 3. Manual installation (copy into your project)
 
 - Copy the `redisgraph` package directory into your project.
 - Ensure your project can import the `redisgraph` module as needed.
