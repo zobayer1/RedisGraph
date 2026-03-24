@@ -39,4 +39,11 @@ jobs:
 
       - name: Run tests
         run: |
-          tox -e ${{ matrix.tox-env }}
+          tox -e ${{ matrix.tox-env }} -- --cov --cov-branch --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          flags: ${{ matrix.tox-env }}
+          fail_ci_if_error: true
