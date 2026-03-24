@@ -5,6 +5,7 @@ Redis Graph Connection Manager (module name: **redisgraph**) is a Python module 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blueviolet?logo=python&logoColor=green)](https://www.python.org)
 [![codecov](https://codecov.io/github/zobayer1/RedisGraph/graph/badge.svg?token=oTgbo2idT1)](https://codecov.io/github/zobayer1/RedisGraph)
 [![Tests](https://github.com/zobayer1/RedisGraph/actions/workflows/python-package.yml/badge.svg?branch=main)](https://github.com/zobayer1/RedisGraph/actions/workflows/python-package.yml)
+[![PyPi Publish](https://github.com/zobayer1/RedisGraph/actions/workflows/python-publish.yml/badge.svg)](https://github.com/zobayer1/RedisGraph/actions/workflows/python-publish.yml)
 [![Documentation Status](https://app.readthedocs.org/projects/redisgraph/badge/?version=latest)](https://redisgraph.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-blue?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -113,7 +114,7 @@ You can install the Redis Graph Connection Manager in one of the following ways:
 - Download the latest `.whl` file.
 - Install with pip:
   ```bash
-  pip install graphconnectionmanager-0.1.7-py3-none-any.whl
+  pip install graphconnectionmanager-0.1.8-py3-none-any.whl
   ```
 
 ### 2. Manual Installation

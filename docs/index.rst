@@ -39,7 +39,7 @@ The package is published on PyPI as ``graphconnectionmanager``. Import it in Pyt
 
 .. code-block:: bash
 
-   pip install graphconnectionmanager-0.1.7-py3-none-any.whl
+   pip install graphconnectionmanager-0.1.8-py3-none-any.whl
 
 Quickstart
 ----------
