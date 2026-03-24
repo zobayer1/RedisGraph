@@ -113,7 +113,7 @@ You can install the Redis Graph Connection Manager in one of the following ways:
 - Download the latest `.whl` file.
 - Install with pip:
   ```bash
-  pip install graphconnectionmanager-0.1.6-py3-none-any.whl
+  pip install graphconnectionmanager-0.1.7-py3-none-any.whl
   ```
 
 ### 2. Manual Installation

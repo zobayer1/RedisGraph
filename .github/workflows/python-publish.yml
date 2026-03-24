@@ -12,8 +12,6 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    # If your PyPI trusted publisher is configured with an Environment name
-    # (e.g. "release"), set it here to match:
     environment: release
 
     steps:
@@ -22,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.8"
           cache: pip
 
       - name: Build distributions
