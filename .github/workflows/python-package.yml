@@ -39,7 +39,7 @@ jobs:
 
       - name: Run tests
         run: |
-          tox -e ${{ matrix.tox-env }} -- --cov --cov-branch --cov-report=xml
+          tox -e ${{ matrix.tox-env }} -- --cov=redisgraph --cov-branch --cov-report=xml --cov-report=term-missing:skip-covered
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
