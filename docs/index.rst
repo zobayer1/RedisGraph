@@ -10,6 +10,8 @@ the graph.
 It provides utilities for adding, removing, and versioning connections, supporting scalable and high-performance graph
 operations that are essential for real-time communication platforms.
 
+PyPI project page: `graphconnectionmanager <https://pypi.org/project/graphconnectionmanager/>`_
+
 .. contents::
    :local:
    :depth: 2
