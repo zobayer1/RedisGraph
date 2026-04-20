@@ -82,6 +82,20 @@ This ensures that both outgoing and incoming relationships are tracked and versi
 historical tracking, and that the connection graph (edge connections) is updated in both directions for existing
 entries.
 
+Increment Version
+-----------------
+
+To increment the version of an existing edge connection::
+
+   incr_version(domain, subject):
+     1. Read the current score for ``subject`` from the selected graph of ``domain``.
+     2. If the edge is missing or its score is negative, raise ``ValueError``.
+     3. Increment the graph's version counter to get the next version.
+     4. Update the existing ZSET member with ``ZADD XX`` so no new edge is inserted implicitly.
+
+This keeps version increments limited to active edge connections. If an edge was soft-deleted or was never added,
+it must be created again with :meth:`redisgraph.GraphManager.add_connection` before its version can be incremented.
+
 Remove Connection
 -----------------
 

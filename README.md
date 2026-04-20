@@ -36,6 +36,7 @@ Redis Graph Connection Manager (module name: **redisgraph**) is a Python module 
 | Intersection Query       | Find common members between two domain graphs.                                     |
 | Incremental Versioning   | Maintain atomic version numbers for domains and subjects for tracking changes.     |
 | Version Tracking         | Track and retrieve the version (score) of each edge.                               |
+| Active-Only Version Bump | Increment versions only for existing active edges; removed or missing edges raise errors. |
 | Soft Delete Edges        | Soft-delete outgoing and incoming edges with negative versions for historical tracking. |
 | Remove Domain            | Remove all outgoing and incoming edges for a domain                                |
 | Redis Backend            | All operations are backed by a Redis server for performance and scalability.       |
@@ -53,6 +54,20 @@ When adding an edge from a domain entity (e.g., `user1`) to a subject (e.g., `su
 ```
 
 This ensures that both outgoing and incoming relationships are tracked and versioned for efficient querying and higher-level historical tracking. This also serves the purpose of updating the edge graph in both directions for existing entries.
+
+### Increment Edge Version
+
+When incrementing the version of an existing edge:
+
+```
+- incr_version(domain, subject):
+  1. Read the current score for `subject` from the selected graph of `domain`.
+  2. If the edge is missing or has a negative score, raise `ValueError`.
+  3. Fetch the next atomic version number for the graph.
+  4. Update the existing edge with `ZADD XX` so only an already-present edge is modified.
+```
+
+This keeps version bumps limited to active edges. Removed edges and never-seen edges must be re-added with `add_connection(...)` before they can be incremented.
 
 ### Remove Edge
 

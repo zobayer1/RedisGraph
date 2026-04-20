@@ -220,10 +220,16 @@ class GraphManager:
             graph_type (GraphType, optional): The type of graph (OUTGOING or INCOMING). Defaults to OUTGOING.
         Returns:
             int: The new version (score) of the subject
+        Raises:
+            ValueError: If the subject does not exist or has a negative score (indicating a removed connection).
         """
-        # Increase the version if subject exists or insert new with next version
+        # Check for negative score to prevent incrementing a removed connection
         gkey, vkey = self._get_graph_key(domain_id, graph_type)
-        self.client.zadd(gkey, {subject_id: self.client.incr(vkey)})
+        current_score = self.client.zscore(gkey, subject_id)
+        if current_score is None or current_score < 0:
+            raise ValueError(f"Cannot increment version for subject '{subject_id}' in domain '{domain_id}'")
+        # Increase the version if subject exists or insert new with next version
+        self.client.zadd(gkey, {subject_id: self.client.incr(vkey)}, xx=True)
         return int(self.client.zscore(gkey, subject_id))
 
     def remove_connection(self, domain_id: str, subject_id: str, soft: bool = True) -> None:

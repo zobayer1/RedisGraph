@@ -1,3 +1,4 @@
+import pytest
 from redis import Redis
 
 from redisgraph import GraphManager, GraphType
@@ -261,6 +262,7 @@ def test_incr_version(graph_manager: GraphManager, redis_client: Redis) -> None:
     Pass criteria:
     - The connection score is incremented in Redis.
     - The version key reflects the new version.
+    - Only existing active connections can be incremented.
     """
     domain_id = "domain123"
     subject_id = "subject456"
@@ -276,15 +278,65 @@ def test_incr_version(graph_manager: GraphManager, redis_client: Redis) -> None:
     assert 2 == int(redis_client.zscore(gkey, subject_id))
     assert 2 == int(redis_client.get(vgkey))
 
-    # Increment a subject never seen before
-    subject2_id = "subject789"
-    new_score = graph_manager.incr_version(domain_id, subject2_id, graph_type=GraphType.OUTGOING)
-    assert 3 == new_score
-
     # Clean up
     rkey1, vrkey1 = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
-    rkey2, vrkey2 = graph_manager._get_graph_key(subject2_id, graph_type=GraphType.INCOMING)
-    redis_client.delete(gkey, vgkey, rkey1, vrkey1, rkey2, vrkey2)
+    redis_client.delete(gkey, vgkey, rkey1, vrkey1)
+
+
+def test_incr_version_raises_for_missing_subject(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that incrementing a missing subject raises an error.
+
+    Pass criteria:
+    - A ValueError is raised when the subject is not already present.
+    - The version key is not created as a side effect.
+    """
+    domain_id = "domain123"
+    subject_id = "subject456"
+
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+
+    with pytest.raises(
+        ValueError, match=f"Cannot increment version for subject '{subject_id}' in domain '{domain_id}'"
+    ):
+        graph_manager.incr_version(domain_id, subject_id, graph_type=GraphType.OUTGOING)
+
+    assert redis_client.zscore(gkey, subject_id) is None
+    assert redis_client.get(vgkey) is None
+
+    # Clean up
+    redis_client.delete(gkey, vgkey)
+
+
+def test_incr_version_raises_for_soft_deleted_subject(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that incrementing a soft-deleted subject raises an error.
+
+    Pass criteria:
+    - A ValueError is raised when the subject has a negative score.
+    - The negative score and version key remain unchanged.
+    """
+    domain_id = "domain123"
+    subject_id = "subject456"
+
+    graph_manager.add_connection(domain_id, subject_id)
+    graph_manager.remove_connection(domain_id, subject_id)
+
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    previous_score = int(redis_client.zscore(gkey, subject_id))
+    previous_version = int(redis_client.get(vgkey))
+
+    with pytest.raises(
+        ValueError, match=f"Cannot increment version for subject '{subject_id}' in domain '{domain_id}'"
+    ):
+        graph_manager.incr_version(domain_id, subject_id, graph_type=GraphType.OUTGOING)
+
+    assert previous_score == int(redis_client.zscore(gkey, subject_id))
+    assert previous_version == int(redis_client.get(vgkey))
+
+    # Clean up
+    rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+    redis_client.delete(gkey, vgkey, rkey, vrkey)
 
 
 def test_remove_connection(graph_manager: GraphManager, redis_client: Redis) -> None:
