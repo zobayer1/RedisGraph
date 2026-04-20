@@ -64,7 +64,7 @@ These keys remain valid with the new constructor: as long as you pass ``prefix="
 The ZSET maps neighbor IDs to scores:
 
 * Positive scores represent **active** edge connections.
-* Negative scores represent **soft-deleted** edge connections in the outgoing graph.
+* Negative scores represent **soft-deleted** edge connections in either graph direction.
 
 Add Connection
 --------------
@@ -88,13 +88,18 @@ Remove Connection
 When removing a connection (edge connection) from a domain entity (for example, ``user1``) to a subject (for example,
 ``subject1``)::
 
-   remove_connection(domain, subject):
+   remove_connection(domain, subject, soft=True):
      1. Increment the domain's version counter to get ``dv``.
      2. Add ``subject1`` to the outgoing ZSET of ``user1`` with score ``-dv`` (soft delete).
-     3. Remove ``user1`` from the incoming ZSET of ``subject1`` entirely (hard delete).
+     3. Increment the subject's incoming version counter to get ``sv``.
+     4. Add ``user1`` to the incoming ZSET of ``subject1`` with score ``-sv`` (soft delete).
 
-The negative score keeps a historical marker of the removal in the outgoing graph while ensuring that the incoming
-set for the subject reflects only currently active edge connections.
+   remove_connection(domain, subject, soft=False):
+     1. Remove ``subject1`` from the outgoing ZSET of ``user1`` entirely (hard delete).
+     2. Remove ``user1`` from the incoming ZSET of ``subject1`` entirely (hard delete).
+
+The default negative scores keep a historical marker of the removal in both directions while still excluding the edge
+from active-connection queries.
 
 Get Connections
 ---------------
@@ -112,8 +117,8 @@ domain::
      - If the active list is not empty, set ``max_score`` to the highest score among the fetched items.
      - If the active list is empty, set ``max_score`` to the current domain version value.
 
-     # Fetch Removed Connections (outgoing graphs only)
-     - For ``graph_type=OUTGOING``, query the same ZSET for items with negative scores
+     # Fetch Removed Connections
+     - Query the same ZSET for items with negative scores
        in the range ``[-max_score, -cut_off)`` (inclusive lower, exclusive upper bound).
      - Collect the list of removed (soft-deleted) connection IDs.
 
@@ -136,7 +141,7 @@ Complexity Considerations
 
 * Adding or removing a single edge connection is ``O(log N)`` per affected ZSET.
 * Paginating active edge connections uses standard ZSET range queries and is efficient even for large graphs.
-* Soft deletes keep the historical markers in the outgoing graph; periodic cleanup can be implemented
+* Soft deletes keep the historical markers in both graph directions; periodic cleanup can be implemented
   externally if old negative entries are no longer needed.
 
 For concrete usage examples, see :class:`redisgraph.GraphManager` and the unit tests in

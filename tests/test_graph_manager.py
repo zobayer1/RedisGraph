@@ -293,8 +293,8 @@ def test_remove_connection(graph_manager: GraphManager, redis_client: Redis) -> 
 
     Pass criteria:
     - The outgoing connection score is set to -2 after removal.
-    - The outgoing version key is incremented.
-    - The incoming connection is removed, and its version key remains correct.
+    - The incoming connection score is also set to -2 after removal.
+    - The version keys for both graphs are incremented.
     """
     domain_id = "domain123"
     subject_id = "subject456"
@@ -309,6 +309,37 @@ def test_remove_connection(graph_manager: GraphManager, redis_client: Redis) -> 
     gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
     assert -2 == int(redis_client.zscore(gkey, subject_id))
     assert 2 == int(redis_client.get(vgkey))
+
+    # Check incoming connection removal
+    rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+    assert -2 == int(redis_client.zscore(rkey, domain_id))
+    assert 2 == int(redis_client.get(vrkey))
+
+    # Clean up
+    redis_client.delete(gkey, vgkey, rkey, vrkey)
+
+
+def test_remove_connection_hard_delete(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that a connection is hard-deleted correctly.
+
+    Pass criteria:
+    - The outgoing and incoming connection entries are removed entirely.
+    - The existing version keys are not incremented during hard delete.
+    """
+    domain_id = "domain123"
+    subject_id = "subject456"
+
+    # Add connection first
+    graph_manager.add_connection(domain_id, subject_id)
+
+    # Hard-delete connection
+    graph_manager.remove_connection(domain_id, subject_id, soft=False)
+
+    # Check outgoing connection removal
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    assert redis_client.zscore(gkey, subject_id) is None
+    assert 1 == int(redis_client.get(vgkey))
 
     # Check incoming connection removal
     rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)

@@ -226,24 +226,37 @@ class GraphManager:
         self.client.zadd(gkey, {subject_id: self.client.incr(vkey)})
         return int(self.client.zscore(gkey, subject_id))
 
-    def remove_connection(self, domain_id: str, subject_id: str) -> None:
+    def remove_connection(self, domain_id: str, subject_id: str, soft: bool = True) -> None:
         """
         Remove a connection between `domain_id` and `subject_id`.
 
-        The outgoing connection from `domain_id` to `subject_id` is soft-deleted by assigning a negative version score,
-        allowing for historical tracking. The corresponding incoming connection from `subject_id` to `domain_id` is
-        permanently removed from the graph.
+        If the soft delete option is enabled, the outgoing connection from `domain_id` to `subject_id` is soft-deleted
+        by assigning a negative version score, allowing for historical tracking. The corresponding incoming connection
+        from `subject_id` to `domain_id` is also soft-deleted by assigning a negative version score.
+
+        With a hard delete, the outgoing connection from `domain_id` to `subject_id` is removed from the graph,
+        and the corresponding incoming connection from `subject_id` to `domain_id` is also removed, without retaining
+        any deletion history.
 
         Args:
             domain_id (str): The identifier of the source domain.
             subject_id (str): The identifier of the target subject to disconnect.
+            soft (bool, optional): Whether to perform a soft delete (default is True).
         """
-        # Soft delete the outgoing connection by assigning a negative version
-        gkey, vkey = self._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
-        self.client.zadd(gkey, {subject_id: int(-1 * self.client.incr(vkey))})
-        # Remove the corresponding incoming connection
-        rkey, _ = self._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
-        self.client.zrem(rkey, domain_id)
+        if soft:
+            # Soft delete the outgoing connection by assigning a negative version
+            gkey, vkey = self._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+            self.client.zadd(gkey, {subject_id: int(-1 * self.client.incr(vkey))})
+            # Soft delete the corresponding incoming connection by assigning a negative version
+            rkey, vkey = self._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+            self.client.zadd(rkey, {domain_id: int(-1 * self.client.incr(vkey))})
+        else:
+            # Hard delete the outgoing connection
+            gkey, _ = self._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+            self.client.zrem(gkey, subject_id)
+            # Remove the corresponding incoming connection
+            rkey, _ = self._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+            self.client.zrem(rkey, domain_id)
 
     def remove_domain(self, domain_id: str) -> None:
         """

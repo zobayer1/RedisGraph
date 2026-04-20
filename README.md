@@ -36,7 +36,7 @@ Redis Graph Connection Manager (module name: **redisgraph**) is a Python module 
 | Intersection Query       | Find common members between two domain graphs.                                     |
 | Incremental Versioning   | Maintain atomic version numbers for domains and subjects for tracking changes.     |
 | Version Tracking         | Track and retrieve the version (score) of each edge.                               |
-| Soft Delete Edges        | Remove outgoing edges with soft delete (negative version) for historical tracking. |
+| Soft Delete Edges        | Soft-delete outgoing and incoming edges with negative versions for historical tracking. |
 | Remove Domain            | Remove all outgoing and incoming edges for a domain                                |
 | Redis Backend            | All operations are backed by a Redis server for performance and scalability.       |
 
@@ -59,13 +59,18 @@ This ensures that both outgoing and incoming relationships are tracked and versi
 When removing an edge from a domain entity (e.g., `user1`) to a subject (e.g., `subject1`):
 
 ```
-- remove_connection(domain, subject):
+- remove_connection(domain, subject, soft=True):
   1. Fetch the next atomic version number for the domain: `dv`.
   2. Add `subject1` to the outgoing set of `user1` with `(-1)*dv` (soft delete).
-  3. Remove `user1` from the incoming set of `subject1` (hard delete).
+  3. Fetch the next atomic version number for the subject's incoming graph: `sv`.
+  4. Add `user1` to the incoming set of `subject1` with `(-1)*sv` (soft delete).
+
+- remove_connection(domain, subject, soft=False):
+  1. Remove `subject1` from the outgoing set of `user1` (hard delete).
+  2. Remove `user1` from the incoming set of `subject1` (hard delete).
 ```
 
-This approach allows efficient soft deletion for outgoing edges (preserving history) while ensuring the incoming set is immediately updated.
+The default behavior preserves deletion history in both directions. Use `soft=False` when the edge should be removed entirely without retaining historical markers.
 
 ### Get Edges
 
@@ -81,7 +86,7 @@ When retrieving a paginated list of active edges and all removed (soft-deleted) 
     - If the active list is not empty, set `max_score` to the highest score among the fetched items.
     - If the active list is empty, set `max_score` to the current domain version value.
   - Fetch Removed Edges:
-    - For `graph_type=outgoing` graphs, query the same set for items with negative scores
+    - Query the same set for items with negative scores
       - Query range `[-max_score, -cut_off)` (inclusive lower, exclusive upper bound).
     - Collect the list of removed (soft-deleted) edge IDs.
   - Return Results:
