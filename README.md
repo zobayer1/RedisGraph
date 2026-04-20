@@ -33,6 +33,9 @@ Redis Graph Connection Manager (module name: **redisgraph**) is a Python module 
 | Add Multiple Edges       | Efficiently add multiple outgoing edges from a domain to a list of subjects.       |
 | Paginated Edge Retrieval | Retrieve active and removed edges with pagination support.                         |
 | All Active Edges         | Fetch all active outgoing edges for a domain without version tracking.             |
+| Active Graph Size        | Count only active edges in a graph; soft-deleted entries are excluded.             |
+| Graph Version Query      | Read the current graph version counter, defaulting to zero when uninitialized.     |
+| Graph Version Bump       | Increment a graph version counter directly, with validation against negative bumps. |
 | Intersection Query       | Find common members between two domain graphs.                                     |
 | Incremental Versioning   | Maintain atomic version numbers for domains and subjects for tracking changes.     |
 | Version Tracking         | Track and retrieve the version (score) of each edge.                               |
@@ -68,6 +71,27 @@ When incrementing the version of an existing edge:
 ```
 
 This keeps version bumps limited to active edges. Removed edges and never-seen edges must be re-added with `add_connection(...)` before they can be incremented.
+
+### Get Graph Size and Version
+
+When reading graph-level metadata:
+
+```
+- get_graph_size(domain, graph_type=outgoing):
+  1. Count only members whose scores are greater than `0`.
+  2. Exclude soft-deleted members with negative scores.
+
+- get_graph_version(domain, graph_type=outgoing):
+  1. Read the graph's version key.
+  2. Return `0` when the version key has not been created yet.
+
+- bump_graph_version(domain, graph_type=outgoing, value=1):
+  1. Reject negative bump values with `ValueError`.
+  2. Increment the graph version key by `value`.
+  3. Return the new graph version.
+```
+
+`get_graph_size(...)` reports the active graph size, `get_graph_version(...)` reports the latest version counter used for that graph direction, and `bump_graph_version(...)` advances that counter directly when a graph-level version change is needed.
 
 ### Remove Edge
 

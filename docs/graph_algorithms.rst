@@ -96,6 +96,29 @@ To increment the version of an existing edge connection::
 This keeps version increments limited to active edge connections. If an edge was soft-deleted or was never added,
 it must be created again with :meth:`redisgraph.GraphManager.add_connection` before its version can be incremented.
 
+Graph Size and Version
+----------------------
+
+To read graph-level metadata for a given domain::
+
+   get_graph_size(domain, graph_type=OUTGOING):
+     1. Count only ZSET members with scores greater than ``0``.
+     2. Exclude soft-deleted members whose scores are negative.
+
+   get_graph_version(domain, graph_type=OUTGOING):
+     1. Read the version key for the selected graph direction.
+     2. Return ``0`` if the version key does not exist yet.
+
+   bump_graph_version(domain, graph_type=OUTGOING, value=1):
+     1. Reject negative ``value`` inputs with ``ValueError``.
+     2. Increment the version key for the selected graph direction by ``value``.
+     3. Return the new graph version.
+
+This separates the current active graph size from the graph's monotonic version counter. A graph can have size ``0``
+while still retaining a positive version after adds and soft deletes. The version can also be advanced directly with
+:meth:`redisgraph.GraphManager.bump_graph_version` when a graph-level change should move the counter without updating
+an individual edge.
+
 Remove Connection
 -----------------
 

@@ -434,3 +434,95 @@ def test_remove_domain(graph_manager: GraphManager, redis_client: Redis) -> None
     for subject_id in subject_ids:
         rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
         redis_client.delete(rkey, vrkey)
+
+
+def test_get_graph_size_counts_only_active_connections(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that graph size counts only positive-score entries.
+
+    Pass criteria:
+    - Active connections are counted.
+    - Soft-deleted connections are excluded from the size.
+    """
+    domain_id = "domain123"
+    subject_ids = ["subject456", "subject789", "subject101"]
+
+    graph_manager.add_connection_list(domain_id, subject_ids)
+    graph_manager.remove_connection(domain_id, subject_ids[0])
+
+    graph_size = graph_manager.get_graph_size(domain_id, graph_type=GraphType.OUTGOING)
+
+    assert graph_size == 2
+
+    # Clean up
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    redis_client.delete(gkey, vgkey)
+    for subject_id in subject_ids:
+        rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+        redis_client.delete(rkey, vrkey)
+
+
+def test_get_graph_version_returns_zero_or_current_version(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that graph version returns zero when missing and the current value when present.
+
+    Pass criteria:
+    - A graph with no version key returns 0.
+    - A graph with connections returns its current version value.
+    """
+    domain_id = "domain123"
+    subject_ids = ["subject456", "subject789"]
+
+    assert graph_manager.get_graph_version(domain_id, graph_type=GraphType.OUTGOING) == 0
+
+    graph_manager.add_connection_list(domain_id, subject_ids)
+
+    assert graph_manager.get_graph_version(domain_id, graph_type=GraphType.OUTGOING) == 2
+
+    # Clean up
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    redis_client.delete(gkey, vgkey)
+    for subject_id in subject_ids:
+        rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+        redis_client.delete(rkey, vrkey)
+
+
+def test_bump_graph_version_increments_existing_or_missing_version(
+    graph_manager: GraphManager, redis_client: Redis
+) -> None:
+    """
+    Test that bump_graph_version increments the graph version for missing and existing keys.
+
+    Pass criteria:
+    - A missing version key is initialized by the bump.
+    - An existing version key is incremented by the requested amount.
+    """
+    domain_id = "domain123"
+
+    assert graph_manager.bump_graph_version(domain_id, graph_type=GraphType.OUTGOING) == 1
+    assert graph_manager.bump_graph_version(domain_id, graph_type=GraphType.OUTGOING, value=3) == 4
+    assert graph_manager.get_graph_version(domain_id, graph_type=GraphType.OUTGOING) == 4
+
+    # Clean up
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    redis_client.delete(gkey, vgkey)
+
+
+def test_bump_graph_version_raises_for_negative_value(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that bump_graph_version rejects negative increment values.
+
+    Pass criteria:
+    - A ValueError is raised for negative values.
+    - The version key is not created as a side effect.
+    """
+    domain_id = "domain123"
+
+    with pytest.raises(ValueError, match="Value for bumping graph version must be non-negative"):
+        graph_manager.bump_graph_version(domain_id, graph_type=GraphType.OUTGOING, value=-1)
+
+    _, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    assert redis_client.get(vgkey) is None
+
+    # Clean up
+    redis_client.delete(vgkey)

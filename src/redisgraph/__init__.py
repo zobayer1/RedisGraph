@@ -284,5 +284,64 @@ class GraphManager:
             rkey, _ = self._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
             self.client.zrem(rkey, domain_id)
 
+    def get_graph_size(self, domain_id: str, graph_type: GraphType = GraphType.OUTGOING) -> int:
+        """
+        Get the total number of active connections for a given domain.
+
+        This method returns the count of members in the specified graph type (OUTGOING or INCOMING) for the
+        given domain whose scores are greater than zero. Soft-deleted entries with negative scores are excluded.
+
+        Args:
+            domain_id (str): The identifier of the domain whose graph size is queried.
+            graph_type (GraphType, optional): The type of graph (OUTGOING or INCOMING). Defaults to OUTGOING.
+
+        Returns:
+            int: The total number of active connections for the specified domain.
+        """
+        # Count the number of members with positive scores in the specified graph
+        gkey, _ = self._get_graph_key(domain_id, graph_type)
+        return self.client.zcount(gkey, min="(0", max="+inf")
+
+    def get_graph_version(self, domain_id: str, graph_type: GraphType = GraphType.OUTGOING) -> int:
+        """
+        Get the current version number for a given domain graph.
+
+        This method retrieves the current version number from the corresponding version key for the specified
+        graph type (OUTGOING or INCOMING) for the given domain. If no connections exist, it returns zero.
+
+        Args:
+            domain_id (str): The identifier of the domain whose graph version is queried.
+            graph_type (GraphType, optional): The type of graph (OUTGOING or INCOMING). Defaults to OUTGOING.
+
+        Returns:
+            int: The current version number of the specified domain graph.
+        """
+        # Retrieve the current version number from the version key, returning zero if it does not exist
+        _, vkey = self._get_graph_key(domain_id, graph_type)
+        version = self.client.get(vkey)
+        return int(version) if version is not None else 0
+
+    def bump_graph_version(self, domain_id: str, graph_type: GraphType = GraphType.OUTGOING, value: int = 1) -> int:
+        """
+        Increment the version number for a given domain graph.
+
+        This method increments the version number by the specified value in the corresponding version key for the
+        specified graph type (OUTGOING or INCOMING) for the given domain. It returns the new version number.
+
+        Args:
+            domain_id (str): The identifier of the domain whose graph version is to be incremented.
+            graph_type (GraphType, optional): The type of graph (OUTGOING or INCOMING). Defaults to OUTGOING.
+            value (int, optional): The amount by which to increment the version. Defaults to 1.
+        Returns:
+            int: The new version number of the specified domain graph after incrementing.
+        Raises:
+            ValueError: If the value for bumping graph version is negative.
+        """
+        # Increment the version number for the graph and return the new version
+        if value < 0:
+            raise ValueError("Value for bumping graph version must be non-negative")
+        _, vkey = self._get_graph_key(domain_id, graph_type)
+        return self.client.incrby(vkey, value)
+
 
 __all__ = ["GraphManager", "GraphType"]
