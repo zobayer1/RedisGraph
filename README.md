@@ -11,6 +11,10 @@ Redis Graph Connection Manager (module name: **redisgraph**) is a Python module 
 [![Codecov](https://codecov.io/github/zobayer1/RedisGraph/graph/badge.svg?token=oTgbo2idT1)](https://codecov.io/github/zobayer1/RedisGraph)
 [![Read the Docs](https://img.shields.io/readthedocs/redisgraph?logo=readthedocs&labelColor=blue)](https://redisgraph.readthedocs.io/en/latest)
 
+Current version: `0.1.9`
+
+Release history: [CHANGELOG.md](./CHANGELOG.md)
+
 ## PyPI Project Page
 
 [https://pypi.org/project/graphconnectionmanager/](https://pypi.org/project/graphconnectionmanager/)

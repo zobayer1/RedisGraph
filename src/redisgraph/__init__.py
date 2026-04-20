@@ -1,8 +1,11 @@
-"""redisgraph
+"""RedisGraph
 
 This package provides classes and utilities for managing domain-to-member connection graphs using Redis as the backend.
 It supports adding, removing, and querying connections, as well as versioning and efficient graph operations for domain
 relationships.
+
+Author: Zobayer Hasan
+Version: 0.1.9
 """
 
 from enum import Enum
