@@ -508,17 +508,20 @@ def test_bump_graph_version_increments_existing_or_missing_version(
     redis_client.delete(gkey, vgkey)
 
 
-def test_bump_graph_version_raises_for_negative_value(graph_manager: GraphManager, redis_client: Redis) -> None:
+def test_bump_graph_version_raises_for_non_positive_value(graph_manager: GraphManager, redis_client: Redis) -> None:
     """
-    Test that bump_graph_version rejects negative increment values.
+    Test that bump_graph_version rejects non-positive increment values.
 
     Pass criteria:
-    - A ValueError is raised for negative values.
+    - A ValueError is raised for zero and negative values.
     - The version key is not created as a side effect.
     """
     domain_id = "domain123"
 
-    with pytest.raises(ValueError, match="Value for bumping graph version must be non-negative"):
+    with pytest.raises(ValueError, match="Value for bumping graph version must be positive"):
+        graph_manager.bump_graph_version(domain_id, graph_type=GraphType.OUTGOING, value=0)
+
+    with pytest.raises(ValueError, match="Value for bumping graph version must be positive"):
         graph_manager.bump_graph_version(domain_id, graph_type=GraphType.OUTGOING, value=-1)
 
     _, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
@@ -526,3 +529,88 @@ def test_bump_graph_version_raises_for_negative_value(graph_manager: GraphManage
 
     # Clean up
     redis_client.delete(vgkey)
+
+
+def test_incr_active_versions_updates_only_active_members(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that incr_active_versions updates only active members and advances the graph version as needed.
+
+    Pass criteria:
+    - Positive-score members are incremented by the requested value.
+    - Soft-deleted members are not modified.
+    - The graph version reflects the current maximum active score after the update.
+    """
+    domain_id = "domain123"
+    subject_ids = ["subject456", "subject789"]
+
+    graph_manager.add_connection_list(domain_id, subject_ids)
+    graph_manager.remove_connection(domain_id, subject_ids[0])
+
+    new_graph_version = graph_manager.incr_active_versions(domain_id, graph_type=GraphType.OUTGOING, value=2)
+
+    assert new_graph_version == 4
+    assert graph_manager.get_graph_version(domain_id, graph_type=GraphType.OUTGOING) == 4
+    assert graph_manager.get_version(domain_id, subject_ids[0], graph_type=GraphType.OUTGOING) == -3
+    assert graph_manager.get_version(domain_id, subject_ids[1], graph_type=GraphType.OUTGOING) == 4
+
+    # Clean up
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    redis_client.delete(gkey, vgkey)
+    for subject_id in subject_ids:
+        rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+        redis_client.delete(rkey, vrkey)
+
+
+def test_incr_active_versions_returns_existing_graph_version_when_no_active_members(
+    graph_manager: GraphManager, redis_client: Redis
+) -> None:
+    """
+    Test that incr_active_versions leaves the graph version unchanged when no active members exist.
+
+    Pass criteria:
+    - A graph with no active members returns its current graph version.
+    - Removed members remain unchanged.
+    """
+    domain_id = "domain123"
+    subject_id = "subject456"
+
+    graph_manager.add_connection(domain_id, subject_id)
+    graph_manager.remove_connection(domain_id, subject_id)
+
+    previous_graph_version = graph_manager.get_graph_version(domain_id, graph_type=GraphType.OUTGOING)
+    previous_subject_version = graph_manager.get_version(domain_id, subject_id, graph_type=GraphType.OUTGOING)
+
+    new_graph_version = graph_manager.incr_active_versions(domain_id, graph_type=GraphType.OUTGOING)
+
+    assert new_graph_version == previous_graph_version
+    assert graph_manager.get_graph_version(domain_id, graph_type=GraphType.OUTGOING) == previous_graph_version
+    assert graph_manager.get_version(domain_id, subject_id, graph_type=GraphType.OUTGOING) == previous_subject_version
+
+    # Clean up
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    rkey, vrkey = graph_manager._get_graph_key(subject_id, graph_type=GraphType.INCOMING)
+    redis_client.delete(gkey, vgkey, rkey, vrkey)
+
+
+def test_incr_active_versions_raises_for_non_positive_value(graph_manager: GraphManager, redis_client: Redis) -> None:
+    """
+    Test that incr_active_versions rejects non-positive increment values.
+
+    Pass criteria:
+    - A ValueError is raised for zero and negative values.
+    - Neither graph entries nor the version key are created as side effects.
+    """
+    domain_id = "domain123"
+
+    with pytest.raises(ValueError, match="Increment value must be positive."):
+        graph_manager.incr_active_versions(domain_id, graph_type=GraphType.OUTGOING, value=0)
+
+    with pytest.raises(ValueError, match="Increment value must be positive."):
+        graph_manager.incr_active_versions(domain_id, graph_type=GraphType.OUTGOING, value=-1)
+
+    gkey, vgkey = graph_manager._get_graph_key(domain_id, graph_type=GraphType.OUTGOING)
+    assert redis_client.zcard(gkey) == 0
+    assert redis_client.get(vgkey) is None
+
+    # Clean up
+    redis_client.delete(gkey, vgkey)

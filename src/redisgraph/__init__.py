@@ -232,6 +232,31 @@ class GraphManager:
         self.client.zadd(gkey, {subject_id: self.client.incr(vkey)}, xx=True)
         return int(self.client.zscore(gkey, subject_id))
 
+    def incr_active_versions(self, domain_id: str, graph_type: GraphType = GraphType.OUTGOING, value: int = 1) -> int:
+        """
+        Increment the version (score) of all active subjects in a specified domain graph.
+
+        Args:
+            domain_id (str): The identifier of the domain.
+            graph_type (GraphType, optional): The type of graph (OUTGOING or INCOMING). Defaults to OUTGOING.
+            value (int, optional): The value by which to increment the version. Defaults to 1.
+        Returns:
+            int: The current graph version after incrementing all active subjects.
+        Raises:
+            ValueError: If value is not positive.
+        """
+        # Iterate through all active subjects and increment their versions
+        if value < 1:
+            raise ValueError("Increment value must be positive.")
+        gkey, vkey = self._get_graph_key(domain_id, graph_type)
+        current_graph_version = int(self.client.get(vkey) or 0)
+        for subject_id in self.client.zrangebyscore(gkey, min="(0", max="+inf"):
+            new_version = int(self.client.zincrby(gkey, value, subject_id))
+            current_graph_version = max(
+                current_graph_version, int(self.client.incrby(vkey, max(new_version - current_graph_version, 0)))
+            )
+        return current_graph_version
+
     def remove_connection(self, domain_id: str, subject_id: str, soft: bool = True) -> None:
         """
         Remove a connection between `domain_id` and `subject_id`.
@@ -335,11 +360,11 @@ class GraphManager:
         Returns:
             int: The new version number of the specified domain graph after incrementing.
         Raises:
-            ValueError: If the value for bumping graph version is negative.
+            ValueError: If the value for bumping graph version is not positive.
         """
         # Increment the version number for the graph and return the new version
-        if value < 0:
-            raise ValueError("Value for bumping graph version must be non-negative")
+        if value < 1:
+            raise ValueError("Value for bumping graph version must be positive")
         _, vkey = self._get_graph_key(domain_id, graph_type)
         return self.client.incrby(vkey, value)
 

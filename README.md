@@ -35,7 +35,8 @@ Redis Graph Connection Manager (module name: **redisgraph**) is a Python module 
 | All Active Edges         | Fetch all active outgoing edges for a domain without version tracking.             |
 | Active Graph Size        | Count only active edges in a graph; soft-deleted entries are excluded.             |
 | Graph Version Query      | Read the current graph version counter, defaulting to zero when uninitialized.     |
-| Graph Version Bump       | Increment a graph version counter directly, with validation against negative bumps. |
+| Graph Version Bump       | Increment a graph version counter directly, with validation against non-positive bumps. |
+| Bulk Active Version Bump | Increment all active edge versions while leaving soft-deleted entries untouched.    |
 | Intersection Query       | Find common members between two domain graphs.                                     |
 | Incremental Versioning   | Maintain atomic version numbers for domains and subjects for tracking changes.     |
 | Version Tracking         | Track and retrieve the version (score) of each edge.                               |
@@ -85,13 +86,19 @@ When reading graph-level metadata:
   1. Read the graph's version key.
   2. Return `0` when the version key has not been created yet.
 
+- incr_active_versions(domain, graph_type=outgoing, value=1):
+  1. Reject zero or negative increment values with `ValueError`.
+  2. Increment only members whose scores are greater than `0`.
+  3. Leave soft-deleted members unchanged.
+  4. Return the current graph version after the update.
+
 - bump_graph_version(domain, graph_type=outgoing, value=1):
-  1. Reject negative bump values with `ValueError`.
+  1. Reject zero or negative bump values with `ValueError`.
   2. Increment the graph version key by `value`.
   3. Return the new graph version.
 ```
 
-`get_graph_size(...)` reports the active graph size, `get_graph_version(...)` reports the latest version counter used for that graph direction, and `bump_graph_version(...)` advances that counter directly when a graph-level version change is needed.
+`get_graph_size(...)` reports the active graph size, `get_graph_version(...)` reports the latest version counter used for that graph direction, `incr_active_versions(...)` bulk-bumps only active members, and `bump_graph_version(...)` advances the graph-level counter directly when needed.
 
 ### Remove Edge
 

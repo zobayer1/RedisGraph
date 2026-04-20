@@ -109,15 +109,22 @@ To read graph-level metadata for a given domain::
      1. Read the version key for the selected graph direction.
      2. Return ``0`` if the version key does not exist yet.
 
+   incr_active_versions(domain, graph_type=OUTGOING, value=1):
+     1. Reject zero or negative ``value`` inputs with ``ValueError``.
+     2. Increment only ZSET members with scores greater than ``0``.
+     3. Leave soft-deleted members unchanged.
+     4. Return the current graph version after the update.
+
    bump_graph_version(domain, graph_type=OUTGOING, value=1):
-     1. Reject negative ``value`` inputs with ``ValueError``.
+     1. Reject zero or negative ``value`` inputs with ``ValueError``.
      2. Increment the version key for the selected graph direction by ``value``.
      3. Return the new graph version.
 
 This separates the current active graph size from the graph's monotonic version counter. A graph can have size ``0``
 while still retaining a positive version after adds and soft deletes. The version can also be advanced directly with
 :meth:`redisgraph.GraphManager.bump_graph_version` when a graph-level change should move the counter without updating
-an individual edge.
+an individual edge, or active edge scores can be bulk-incremented with
+:meth:`redisgraph.GraphManager.incr_active_versions` without reviving removed entries.
 
 Remove Connection
 -----------------
